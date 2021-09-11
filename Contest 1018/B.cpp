@@ -72,33 +72,27 @@ Game Game::operator++(){
         data.iExp = 0;
         data.iExpNext *= 1.1;
         data.iHP += 100;
-        data.iHPCurrent = min(data.iHP, data.iHPCurrent + 100);
         data.iATK += 20;
         data.iDEF += 5;
         data.iSPD += 10;
-        data.iBasicHurt += 5;
     }
     else if (data.sType == "dwarf"){
         ++data.iLevel;
         data.iExp = 0;
         data.iExpNext *= 1.1;
         data.iHP += 200;
-        data.iHPCurrent = min(data.iHP, data.iHPCurrent + 100);
         data.iATK += 10;
         data.iDEF += 20;
         data.iSPD += 5;
-        data.iBasicHurt += 4;
     }
     else if (data.sType == "shooter"){
         ++data.iLevel;
         data.iExp = 0;
         data.iExpNext *= 1.1;
         data.iHP += 150;
-        data.iHPCurrent = min(data.iHP, data.iHPCurrent + 100);
         data.iATK += 5;
         data.iDEF += 10;
         data.iSPD += 20;
-        data.iBasicHurt += 3;
     }
     return *this;
 }
@@ -108,7 +102,6 @@ Game Game::operator+=(Weapon wepWeaponAdd){
     data.iDEF += wepWeaponAdd.iDefenceAdd;
     data.iHP += wepWeaponAdd.iHPAdd;
     data.iHPCurrent += wepWeaponAdd.iHPAdd;
-    data.iHPCurrent = min(data.iHP, data.iHPCurrent);
     data.iSPD += wepWeaponAdd.iSpeedAdd;
     this->wepWeapon = wepWeaponAdd;
     return *this;
@@ -117,15 +110,11 @@ Game Game::operator-=(Weapon wepWeaponAdd){
     if (wepWeaponAdd.sName != this->wepWeapon.sName){
         return *this;
     }
-    if (data.iHPCurrent <= 1){
-        return *this;
-    }
     data.iBasicHurt -= wepWeaponAdd.iBasicHurtAdd;
     data.iATK -= wepWeaponAdd.iAttackAdd;
     data.iDEF -= wepWeaponAdd.iDefenceAdd;
     data.iHP -= wepWeaponAdd.iHPAdd;
     data.iSPD -= wepWeaponAdd.iSpeedAdd;
-    data.iHPCurrent = min(data.iHPCurrent, data.iHP);
     this->wepWeapon.sName = "";
     return *this;
 }
@@ -134,42 +123,18 @@ Game Game::operator+=(Pill pilPillAdd){
     data.iATK += pilPillAdd.iAttackAdd;
     data.iDEF += pilPillAdd.iDefenceAdd;
     data.iHP += pilPillAdd.iHPAdd;
-    data.iHPCurrent = min(data.iHP, data.iHPCurrent + pilPillAdd.iHPAdd );
     data.iSPD += pilPillAdd.iSpeedAdd;
     return *this;
 }
-bool Game::Battle(Game gamObject){ //TODO:Change this when requirement changes
+bool Game::Battle(Game gamObject){
     long long iHPBack = gamObject.data.iHP;
-    long long iHPBackMe = data.iHP;
     while (1){
-        //std::cout << data.sName << ' ' << data.sType << ' ' << data.iLevel << ' ' << data.iExp << ' ' << data.iHP << ' ' << data.iBasicHurt << ' ' << data.iATK << ' ' << data.iDEF << ' ' << data.iSPD << endl;
-        //std::cout << gamObject.data.sName << ' ' << gamObject.data.sType << ' ' << gamObject.data.iLevel << ' ' << gamObject.data.iExp << ' ' << gamObject.data.iHP << ' ' << gamObject.data.iBasicHurt << ' ' << gamObject.data.iATK << ' ' << gamObject.data.iDEF << ' ' << gamObject.data.iSPD << endl;
-        if (data.iHP <= 0){
-            std::cout << data.sName << " DEAD\n";
-            std::cout << gamObject.data.sName << ' ' << gamObject.data.sType << ' ' << gamObject.data.iLevel << ' ' << gamObject.data.iExp << ' ' << gamObject.data.iHP << ' ' << gamObject.data.iBasicHurt << ' ' << gamObject.data.iATK << ' ' << gamObject.data.iDEF << ' ' << gamObject.data.iSPD << endl;
-            long long iExp = iHPBackMe;
-            while ((iExp -= gamObject.data.iExpNext) >= 0){
-                ++gamObject;
-                gamObject.data.iExp = iExp;
-            }
-            return false;
-        }
-        if (gamObject.data.iHP <= 0){
-            long long iExp = iHPBack;
-            while ((iExp -= data.iExpNext) >= 0){
-                ++(*this);
-                data.iExp = iExp;
-            }
-            std::cout << data.sName << ' ' << data.sType << ' ' << data.iLevel << ' ' << data.iExp << ' ' << data.iHP << ' ' << data.iBasicHurt << ' ' << data.iATK << ' ' << data.iDEF << ' ' << data.iSPD << endl;
-            std::cout << gamObject.data.sName << " DEAD\n";
-            return true;
-        }
         if (this->data.iSPD >= gamObject.data.iSPD){
             if (this->data.iATK > gamObject.data.iDEF){
-                gamObject.data.iHP -= data.iBasicHurt + (data.iATK - gamObject.data.iDEF + 20)*data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                gamObject.data.iHP -= max((data.iATK - gamObject.data.iDEF + data.iBasicHurt)*data.iSPD / (data.iSPD + gamObject.data.iSPD),1LL);
             }
             else{
-                gamObject.data.iHP -= (data.iBasicHurt) + 20 * data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                gamObject.data.iHP -= max((data.iBasicHurt)*data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             if (gamObject.data.iHP <= 0){
                 long long iExp = iHPBack;
@@ -177,119 +142,33 @@ bool Game::Battle(Game gamObject){ //TODO:Change this when requirement changes
                     ++(*this);
                     data.iExp = iExp;
                 }
-                std::cout << data.sName << ' ' << data.sType << ' ' << data.iLevel << ' ' << data.iExp << ' ' << data.iHP << ' ' << data.iBasicHurt << ' ' << data.iATK << ' ' << data.iDEF << ' ' << data.iSPD << endl;
-                std::cout << gamObject.data.sName << " DEAD\n";
                 return true;
             }
             if (data.iDEF < gamObject.data.iATK){
-                data.iHP -= gamObject.data.iBasicHurt+(gamObject.data.iATK - data.iDEF + 20)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                data.iHP -= max((gamObject.data.iATK - data.iDEF + gamObject.data.iBasicHurt)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             else{
-                data.iHP -= (gamObject.data.iBasicHurt)+20*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                data.iHP -= max((gamObject.data.iBasicHurt)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             if (data.iHP <= 0){
-                long long iExp = iHPBackMe;
-                while ((iExp -= gamObject.data.iExpNext) >= 0){
-                    ++gamObject;
-                    gamObject.data.iExp = iExp;
-                }
-                std::cout << data.sName << " DEAD\n";
-                std::cout << gamObject.data.sName << ' ' << gamObject.data.sType << ' ' << gamObject.data.iLevel << ' ' << gamObject.data.iExp << ' ' << gamObject.data.iHP << ' ' << gamObject.data.iBasicHurt << ' ' << gamObject.data.iATK << ' ' << gamObject.data.iDEF << ' ' << gamObject.data.iSPD << endl;
                 return false;
-            }
-        }
-        else if (data.iSPD == gamObject.data.iSPD){
-            if (data.iLevel >= gamObject.data.iLevel){
-                if (this->data.iATK > gamObject.data.iDEF){
-                    gamObject.data.iHP -= data.iBasicHurt + (data.iATK - gamObject.data.iDEF + 20)*data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                else{
-                    gamObject.data.iHP -= (data.iBasicHurt) + 20 * data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                if (gamObject.data.iHP <= 0){
-                    long long iExp = iHPBack;
-                    while ((iExp -= data.iExpNext) >= 0){
-                        ++(*this);
-                        data.iExp = iExp;
-                    }
-                    std::cout << data.sName << ' ' << data.sType << ' ' << data.iLevel << ' ' << data.iExp << ' ' << data.iHP << ' ' << data.iBasicHurt << ' ' << data.iATK << ' ' << data.iDEF << ' ' << data.iSPD << endl;
-                    std::cout << gamObject.data.sName << " DEAD\n";
-                    return true;
-                }
-                if (data.iDEF < gamObject.data.iATK){
-                    data.iHP -= gamObject.data.iBasicHurt + (gamObject.data.iATK - data.iDEF + 20)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                else{
-                    data.iHP -= (gamObject.data.iBasicHurt) + 20 * gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                if (data.iHP <= 0){
-                    long long iExp = iHPBackMe;
-                    while ((iExp -= gamObject.data.iExpNext) >= 0){
-                        ++gamObject;
-                        gamObject.data.iExp = iExp;
-                    }
-                    std::cout << data.sName << " DEAD\n";
-                    std::cout << gamObject.data.sName << ' ' << gamObject.data.sType << ' ' << gamObject.data.iLevel << ' ' << gamObject.data.iExp << ' ' << gamObject.data.iHP << ' ' << gamObject.data.iBasicHurt << ' ' << gamObject.data.iATK << ' ' << gamObject.data.iDEF << ' ' << gamObject.data.iSPD << endl;
-                    return false;
-                }
-            }
-            else{
-                if (data.iDEF < gamObject.data.iATK){
-                    data.iHP -= gamObject.data.iBasicHurt + (gamObject.data.iATK - data.iDEF + 20)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                else{
-                    data.iHP -= (gamObject.data.iBasicHurt) + 20 * gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                if (data.iHP <= 0){
-                    long long iExp = iHPBackMe;
-                    while ((iExp -= gamObject.data.iExpNext) >= 0){
-                        ++gamObject;
-                        gamObject.data.iExp = iExp;
-                    }
-                    std::cout << data.sName << " DEAD\n";
-                    std::cout << gamObject.data.sName << ' ' << gamObject.data.sType << ' ' << gamObject.data.iLevel << ' ' << gamObject.data.iExp << ' ' << gamObject.data.iHP << ' ' << gamObject.data.iBasicHurt << ' ' << gamObject.data.iATK << ' ' << gamObject.data.iDEF << ' ' << gamObject.data.iSPD << endl;
-                    return false;
-                }
-                if (this->data.iATK > gamObject.data.iDEF){
-                    gamObject.data.iHP -= data.iBasicHurt + (data.iATK - gamObject.data.iDEF + 20)*data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                else{
-                    gamObject.data.iHP -= (data.iBasicHurt) + 20 * data.iSPD / (data.iSPD + gamObject.data.iSPD);
-                }
-                if (gamObject.data.iHP <= 0){
-                    long long iExp = iHPBack;
-                    while ((iExp -= data.iExpNext) >= 0){
-                        ++(*this);
-                        data.iExp = iExp;
-                    }
-                    std::cout << data.sName << ' ' << data.sType << ' ' << data.iLevel << ' ' << data.iExp << ' ' << data.iHP << ' ' << data.iBasicHurt << ' ' << data.iATK << ' ' << data.iDEF << ' ' << data.iSPD << endl;
-                    std::cout << gamObject.data.sName << " DEAD\n";
-                    return true;
-                }
             }
         }
         else{
             if (data.iDEF < gamObject.data.iATK){
-                data.iHP -= gamObject.data.iBasicHurt + (gamObject.data.iATK - data.iDEF + 20)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                data.iHP -= max((gamObject.data.iATK - data.iDEF + gamObject.data.iBasicHurt)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             else{
-                data.iHP -= (gamObject.data.iBasicHurt) + 20 * gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                data.iHP -= max((gamObject.data.iBasicHurt)*gamObject.data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             if (data.iHP <= 0){
-                long long iExp = iHPBackMe;
-                while ((iExp -= gamObject.data.iExpNext) >= 0){
-                    ++gamObject;
-                    gamObject.data.iExp = iExp;
-                }
-                std::cout << data.sName << " DEAD\n";
-                std::cout << gamObject.data.sName << ' ' << gamObject.data.sType << ' ' << gamObject.data.iLevel << ' ' << gamObject.data.iExp << ' ' << gamObject.data.iHP << ' ' << gamObject.data.iBasicHurt << ' ' << gamObject.data.iATK << ' ' << gamObject.data.iDEF << ' ' << gamObject.data.iSPD << endl;
                 return false;
             }
             if (this->data.iATK > gamObject.data.iDEF){
-                gamObject.data.iHP -= data.iBasicHurt + (data.iATK - gamObject.data.iDEF + 20)*data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                gamObject.data.iHP -= max((data.iATK - gamObject.data.iDEF + data.iBasicHurt)*data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             else{
-                gamObject.data.iHP -= (data.iBasicHurt) + 20 * data.iSPD / (data.iSPD + gamObject.data.iSPD);
+                gamObject.data.iHP -= max((data.iBasicHurt)*data.iSPD / (data.iSPD + gamObject.data.iSPD), 1LL);
             }
             if (gamObject.data.iHP <= 0){
                 long long iExp = iHPBack;
@@ -297,8 +176,6 @@ bool Game::Battle(Game gamObject){ //TODO:Change this when requirement changes
                     ++(*this);
                     data.iExp = iExp;
                 }
-                std::cout << data.sName << ' ' << data.sType << ' ' << data.iLevel << ' ' << data.iExp << ' ' << data.iHP << ' ' << data.iBasicHurt << ' ' << data.iATK << ' ' << data.iDEF << ' ' << data.iSPD << endl;
-                std::cout << gamObject.data.sName << " DEAD\n";
                 return true;
             }
         }
@@ -310,11 +187,8 @@ int main(){
     int nCount = 0;
     Data dat;
     cin >> dat.sName >> dat.sType >> dat.iLevel >> dat.iExp >> dat.iHP >> dat.iBasicHurt >> dat.iATK >> dat.iDEF >> dat.iSPD;
-    //std::cout << dat.sName << ' ' << dat.sType << ' ' << dat.iLevel << ' ' << dat.iExp << ' ' << dat.iHP << ' ' << dat.iBasicHurt << ' ' << dat.iATK << ' ' << dat.iDEF << ' ' << dat.iSPD<<endl;
+    cout << dat.sName << ' ' << dat.sType << ' ' << dat.iLevel << ' ' << dat.iExp << ' ' << dat.iHP << ' ' << dat.iBasicHurt << ' ' << dat.iATK << ' ' << dat.iDEF << ' ' << dat.iSPD<<endl;
     Game gme(dat);
-    cin >> dat.sName >> dat.sType >> dat.iLevel >> dat.iExp >> dat.iHP >> dat.iBasicHurt >> dat.iATK >> dat.iDEF >> dat.iSPD;
-    //std::cout << dat.sName << ' ' << dat.sType << ' ' << dat.iLevel << ' ' << dat.iExp << ' ' << dat.iHP << ' ' << dat.iBasicHurt << ' ' << dat.iATK << ' ' << dat.iDEF << ' ' << dat.iSPD<<endl;
-    Game gme2(dat);
     Data datZombie;
     datZombie.sName = "Zombie";
     datZombie.iLevel = 0;
@@ -324,7 +198,7 @@ int main(){
     datZombie.iATK = 15;
     datZombie.iDEF = 20;
     datZombie.iSPD = 30;
-    datZombie.iBasicHurt = 10; //TODO: WAITING FOR RESPONSE
+    datZombie.iBasicHurt = 0; //TODO: WAITING FOR RESPONSE
     Game objZombie(datZombie);
     Weapon wepYitianjian, wepTianlongdun, wepTianshizhiyi;
     wepYitianjian.sName = "Yi Tian Jian";
@@ -354,7 +228,7 @@ int main(){
     pilXiaohuandan.iAttackAdd = 0;
     pilXiaohuandan.iDefenceAdd = 0;
     pilXiaohuandan.iSpeedAdd = 0;
-    pilXiaohuandan.iHPAdd = 800;
+    pilXiaohuandan.iHPAdd = 500;
     pilXiaohuandan.iPrice = 1000;
     pilJinghuadan.sName = "Jing Hua Dan";
     pilJinghuadan.iBasicHurtAdd = 5;
@@ -370,49 +244,48 @@ int main(){
     pilBaojidan.iSpeedAdd = 0;
     pilBaojidan.iHPAdd = 0;
     pilBaojidan.iPrice = 1000;
-    //int iWepIndex;
-    //int nMoney = 10000;
-    //cin >> iWepIndex;
-    //switch (iWepIndex){
-    //case 1:
-    //  gme += wepYitianjian;
-    //  nMoney -= wepYitianjian.iPrice;
-    //  break;
-    //case 2:
-    //  gme += wepTianlongdun;
-    //  nMoney -= wepTianlongdun.iPrice;
-    //  break;
-    //case 3:
-    //  gme += wepTianshizhiyi;
-    //  nMoney -= wepTianshizhiyi.iPrice;
-    //  break;
-    //};
-    ////std::cout << gme.data.sName << ' ' << gme.data.sType << ' ' << gme.data.iLevel << ' ' << gme.data.iExp << ' ' << gme.data.iHP << ' ' << gme.data.iBasicHurt << ' ' << gme.data.iATK << ' ' << gme.data.iDEF << ' ' << gme.data.iSPD<<endl;
-    //int iPilIndex, nPill;
-    //Pill pilCurrent;
-    //cin >> iPilIndex >> nPill;
-    //switch (iPilIndex){
-    //case 1:
-    //  pilCurrent = pilXiaohuandan;
-    //  break;
-    //case 2:
-    //  pilCurrent = pilJinghuadan;
-    //  break;
-    //case 3:
-    //  pilCurrent = pilBaojidan;
-    //  break;
-    //}
-    //nPill = min(nPill, nMoney / pilCurrent.iPrice);
-    //nMoney -= pilCurrent.iPrice*nPill;
-    //for (i = 1; i <= nPill; ++i){
-    //  gme += pilCurrent;
-    //}
-    //std::cout << gme.data.sName << ' ' << gme.data.sType << ' ' << gme.data.iLevel << ' ' << gme.data.iExp << ' ' << gme.data.iHP << ' ' << gme.data.iBasicHurt << ' ' << gme.data.iATK << ' ' << gme.data.iDEF << ' ' << gme.data.iSPD << endl;
+    int iWepIndex;
+    int nMoney = 10000;
+    cin >> iWepIndex;
+    switch (iWepIndex){
+    case 1:
+        gme += wepYitianjian;
+        nMoney -= wepYitianjian.iPrice;
+        break;
+    case 2:
+        gme += wepTianlongdun;
+        nMoney -= wepTianlongdun.iPrice;
+        break;
+    case 3:
+        gme += wepTianshizhiyi;
+        nMoney -= wepTianshizhiyi.iPrice;
+        break;
+    };
+    cout << gme.data.sName << ' ' << gme.data.sType << ' ' << gme.data.iLevel << ' ' << gme.data.iExp << ' ' << gme.data.iHP << ' ' << gme.data.iBasicHurt << ' ' << gme.data.iATK << ' ' << gme.data.iDEF << ' ' << gme.data.iSPD<<endl;
+    int iPilIndex, nPill;
+    Pill pilCurrent;
+    cin >> iPilIndex >> nPill;
+    switch (iPilIndex){
+    case 1:
+        pilCurrent = pilXiaohuandan;
+        break;
+    case 2:
+        pilCurrent = pilJinghuadan;
+        break;
+    case 3:
+        pilCurrent = pilBaojidan;
+        break;
+    }
+    nPill = min(nPill, nMoney / pilCurrent.iPrice);
+    nMoney -= pilCurrent.iPrice*nPill;
+    for (i = 1; i <= nPill; ++i){
+        gme += pilCurrent;
+    }
+    cout << gme.data.sName << ' ' << gme.data.sType << ' ' << gme.data.iLevel << ' ' << gme.data.iExp << ' ' << gme.data.iHP << ' ' << gme.data.iBasicHurt << ' ' << gme.data.iATK << ' ' << gme.data.iDEF << ' ' << gme.data.iSPD << endl;
     //while (gme.Battle(datZombie)){
     //  ++nCount;
     //}
-    //std::cout << nCount;
-    gme.Battle(gme2);
+    //cout << nCount;
     endapp:
     //system("pause > nul");
     return 0;
